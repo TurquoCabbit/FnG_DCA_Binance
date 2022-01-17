@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.10'
+Version = '0.1.11'
 Date = '2022/01/17'
 
 ##############################################################################################################################
@@ -313,7 +313,6 @@ if __name__ == '__main__':
     Symbol = {}
     Balance = {}
     Fng = {}
-    Post_trade = False
 
     try:
         ##############################################################################################################################
@@ -362,6 +361,7 @@ if __name__ == '__main__':
             'trade_time',
             'trade_{}'.format(cfg.Base),
             'trade_{}'.format(cfg.Quote),
+            'trade_price',
             'F&G',
             'next_time',
             'accum_Buy',
@@ -401,15 +401,10 @@ if __name__ == '__main__':
                 else:
                     sta.next_time += 86400
                 sta.write()
-            elif Post_trade:
-                Post_trade = False
-
-
             else:
                 collect()
                 delay.anima_runtime(cfg.Polling_delay, sta.start_time)
                 continue
-            
             ### Query symbol data
             retry = cfg.Retry_times
             while retry:
@@ -508,6 +503,7 @@ if __name__ == '__main__':
             display_str += 'Free Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.base_balance, cfg.Quote, sta.quote_balance)
             display_str += '{} last price : {} {}'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
             log.log_and_show(display_str)
+            log.show('')
             del display_str
 
             ### Check and Do trade
@@ -570,16 +566,25 @@ if __name__ == '__main__':
                         continue                                 
                     del retry
 
-                    log.log_and_show('{} {} about {:.2f} {} {} Successfully!!'.format(datetime.now().strftime('%Y/%m/%d'), order.side, cfg.Daily_invest, cfg.Quote, cfg.Base))
                     order.actual_quote_qty = float(order.status['cummulativeQuoteQty'])
                     order.actual_base_qty = float(order.status['executedQty'])
                     order.actual_price = order.actual_quote_qty / order.actual_base_qty
                     order.time = float(order.status['time']) / 1000
-
-                    if sta.accumulation_Buy_quote > order.actual_quote_qty:
-                        sta.accumulation_Buy_quote -= order.actual_quote_qty
-                    else:
+                    
+                    sta.accumulation_Buy_quote += cfg.Daily_invest - order.actual_quote_qty
+                    if sta.accumulation_Buy_quote < 0:
                         sta.accumulation_Buy_quote = 0
+                    
+                    str = '{} Buy {:.5f} {} at {:.2f} {} ({:.2f} {}) Successfully!!'.format(datetime.now().strftime('%Y/%m/%d'),
+                                                                                        order.actual_base_qty,
+                                                                                        cfg.Base,
+                                                                                        order.actual_price,
+                                                                                        cfg.Quote,
+                                                                                        order.actual_quote_qty,
+                                                                                        cfg.Quote)
+                    log.log_and_show(str)
+                    log.show('=' * len(str))
+                    del str
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
 
@@ -595,6 +600,7 @@ if __name__ == '__main__':
                     '[{}]'.format(timestamp_format(order.time)),       # trade_time
                     order.actual_base_qty,              # trade_{}
                     order.actual_quote_qty,             # trade_{}
+                    order.actual_price,                 # trade_price
                     Fng['value'],                       # F&G
                     '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
                     sta.accumulation_Buy_quote,         # accum_Buy
@@ -611,6 +617,7 @@ if __name__ == '__main__':
                     '--',                               # trade_time
                     '--',                               # trade_{}
                     '--',                               # trade_{}
+                    '--',                               # trade_price
                     Fng['value'],                       # F&G
                     '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
                     sta.accumulation_Buy_quote,         # accum_Buy
