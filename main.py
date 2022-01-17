@@ -17,8 +17,8 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.0.00'
-Date = '2021/12/24'
+Version = '0.1.00'
+Date = '2022/01/17'
 
 ##############################################################################################################################
 ### init log
@@ -28,19 +28,7 @@ log.log_and_show('Bybit Fear and Greed index DCA trading bot ver {} {}'.format(V
 
 class CFG:
     def __init__(self, version) -> None:
-        self.version = version
-        self.Test_net = True
-        self.Base = None
-        self.Quote = None
-        self.Duration_days = None
-        self.Daily_invest = None
-        self.Accumulate_Buy = None
-        self.Accumulate_Sell = None   
-        self.Buy_at_fear = None
-        self.Sell_at_greed = None
-        self.Retry_times = None
-        self.Retry_delay = None
-        self.Polling_delay = None
+        self.version = version        
         
         self.cfg_init = {
                             'Version' : version,
@@ -57,9 +45,31 @@ class CFG:
                             'Retry_delay' : 0.2,
                             'Polling_delay' : 600
                         }
-    
-        self.symbol = None
+        self.__var_init__()
 
+    def __var_init__(self):
+        self.Test_net = True
+        self.Base = None
+        self.Quote = None
+        self.Duration_days = None
+        self.Daily_invest = None
+        self.Accumulate_Buy = None
+        self.Accumulate_Sell = None   
+        self.Buy_at_fear = None
+        self.Sell_at_greed = None
+        self.Retry_times = None
+        self.Retry_delay = None
+        self.Polling_delay = None
+
+    def __str__(self):
+        str = 'cfg.json loaded\n\tVersion: {}\n\tRun on test net: {}\n\t'.format(self.version, self.Test_net)
+        str += 'Base coin: {}\n\tQuote coin: {}\n\t'.format(self.Base, self.Quote)
+        str += 'Duration_days: {}\n\tDaily_invest: {} quotes\n\t'.format(self.Duration_days, self.Daily_invest)
+        str += 'Accumulate_Buy: {}\n\tAccumulate_Sell: {}\n\t'.format(self.Accumulate_Buy, self.Accumulate_Sell)
+        str += 'Buy at fear lower than: {}\n\tSell at greed higher than : {}\n\t'.format(self.Buy_at_fear, self.Sell_at_greed)
+        str += 'Retry_times: {}\n\tRetry_delay: {} s\n\tPolling_delay: {} s'.format(self.Retry_times, self.Retry_delay, self.Polling_delay)
+        return str
+    
     def new_cfg(self):
         with open('cfg.json', 'w') as file:
             json.dump(self.cfg_init, file, indent = 4)
@@ -90,16 +100,7 @@ class CFG:
         except KeyError:
             self.archive_cfg('cfg.json corrupted, old one archive as cfg_{}.json'.format(timestamp_format(os.path.getctime('cfg.json'), '%Y%m%d-%H;%M;%S')))
 
-    def log_cfg(self):
-        str = 'cfg.json loaded\n\tVersion: {}\n\tRun on test net: {}\n\t'.format(self.version, self.Test_net)
-        str += 'Base coin: {}\n\tQuote coin: {}\n\t'.format(self.Base, self.Quote)
-        str += 'Duration_days: {}\n\tDaily_invest: {} quotes\n\t'.format(self.Duration_days, self.Daily_invest)
-        str += 'Accumulate_Buy: {}\n\Accumulate_Sell: {}\n\t'.format(self.Accumulate_Buy, self.Accumulate_Sell)
-        str += 'Buy at fear lower than: {}\n\tSell at greed higher than : {}\n\t'.format(self.Buy_at_fear, self.Sell_at_greed)
-        str += 'Retry_times: {}\n\tRetry_delay: {} s\n\tPolling_delay: {} s'.format(self.Retry_times, self.Retry_delay, self.Polling_delay)
-        log.log(str)
-        del str
-    
+   
     def update_version(self):
         self.version = Version
         self.cfg['Version'] = self.version
@@ -138,18 +139,19 @@ class Status_data:
                 pass
             del file
 
+        self.dir = dir
+        
+        self.__var_init__()
+        ################### TODO ################################
+    
+    def __var_init__(self):
         self.start_time = int(time())
-        self.next_time = 0
+        self.next_time = self.start_time
         self.exe_time = 0
         self.base_balance = 0
         self.quote_balance = 0
         self.accumulation_Buy_quote = 0
         self.accumulation_Sell_quote = 0
-
-        self.dir = dir
-
-        self.csv_head = ['time', 'balance']
-        ################### TODO ################################
     
     def __str__(self):
         str = 'start_time : {}\n'.format(self.start_time)
@@ -176,17 +178,11 @@ class Status_data:
             self.accumulation_Buy_quote = temp['accumulation_Buy_quote']
             self.accumulation_Sell_quote = temp['accumulation_Sell_quote']
         except KeyError:
-            self.start_time = int(time())
-            self.next_time = 0
-            self.exe_time = 0
-            self.base_balance = 0
-            self.quote_balance = 0
-            self.accumulation_Buy_quote = 0
-            self.accumulation_Sell_quote = 0
+            self.__var_init__()
 
         del temp        
         
-    def write_status(self):
+    def write(self):
         temp = {
             'start_time' : self.start_time,
             'next_time' : self.next_time,
@@ -201,16 +197,6 @@ class Status_data:
 
         del temp
     
-    def record_balance(self):
-        if not os.path.isfile('{}/balance.csv'.format(self.dir)):
-            with open('{}/balance.csv'.format(self.dir), 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(self.csv_head)
-        
-        with open('{}/balance.csv'.format(self.dir), 'a', newline='') as file:
-            writer = csv.writer(file)
-            # writer.writerow([ , ])
-    
     def archive(self):
         if os.path.isdir(self.dir):
             if not os.path.isdir('archive'):
@@ -218,6 +204,26 @@ class Status_data:
             copytree(self.dir, 'archive/{}_{}'.format(self.dir, timestamp_format(os.path.getctime('{}/status.json'.format(self.dir)), '%Y%m%d-%H%M%S')))
             rmtree(self.dir)
             os.mkdir(self.dir)
+
+class Ledger:
+    def __init__(self, dir, filename) -> None:
+        self.file = '{}/{}.csv'.format(dir, filename)
+        self.csv_head = False
+
+        
+    def set_header(self, arr = []):
+        self.csv_head = arr
+
+        if not os.path.isfile(self.file):
+            with open(self.file, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(self.csv_head)
+
+        
+    def write(self, row = []):
+        with open(self.file, 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(row)
         
 class Open:
     def __init__(self, symbol, side) -> None:
@@ -277,7 +283,7 @@ def price_trim(price, tick):
     price -= price % tick    
     return price / pow(10, digi)
 
-def timestamp_format(stamp, format = '%H:%M:%S %Y-%m-%d'):
+def timestamp_format(stamp, format = '%Y/%m/%d %H:%M:%S'):
     return strftime(format, localtime(stamp))
 
 def argv_check():
@@ -306,12 +312,13 @@ if __name__ == '__main__':
     delay = delay_anima()
     cfg = CFG(Version)
     sta = Status_data('status')
+    ledger = Ledger('status', 'ledger')
     fng = crypto_fear_and_greed_alternative()
     argv_check()
-    
     Symbol = {}
     Balance = {}
     Fng = {}
+    Post_trade = False
 
     try:
         ##############################################################################################################################
@@ -345,11 +352,28 @@ if __name__ == '__main__':
         if cfg.Retry_delay < 0.1:
             cfg.Retry_delay = 0.1
 
-        cfg.log_cfg()
+        log.log(str(cfg))
 
         ##############################################################################################################################
         ### Load status data
         sta.load()
+
+        ##############################################################################################################################
+        ### Set csv head
+        header = [
+            'exe_time',
+            '{}_balance'.format(cfg.Base),
+            '{}_balance'.format(cfg.Quote),
+            'trade_time',
+            'trade_{}'.format(cfg.Base),
+            'trade_{}'.format(cfg.Quote),
+            'F&G',
+            'next_time',
+            'accum_Buy',
+            'accum_Sell'
+        ]
+        ledger.set_header(header)
+        del header
 
         ##############################################################################################################################
         ### Create client
@@ -373,14 +397,19 @@ if __name__ == '__main__':
     while True:
         try:
             ### check time and run
-            if int(time()) >= sta.next_time:
+            sta.exe_time = int(time())
+            if sta.exe_time >= sta.next_time:
                 log.log_and_show(log.get_run_time(sta.start_time))
-                if sta.next_time == 0 or int(time()) - sta.next_time > 86400:
+                if sta.exe_time - sta.next_time > 86400:
                     #First round or pause longer than one days
-                    sta.next_time = 86400 + int(time())
+                    sta.next_time = 86400 + sta.exe_time
                 else:
                     sta.next_time += 86400
-                sta.write_status()
+                sta.write()
+            elif Post_trade:
+                Post_trade = False
+
+
             else:
                 collect()
                 delay.anima_runtime(cfg.Polling_delay, sta.start_time)
@@ -397,7 +426,7 @@ if __name__ == '__main__':
                     continue
                 else:
                     break
-
+            
             if retry == 0:
                 # Query symbol fail use old data if any
                 log.log('Query {}{} symbol data fail {} times!!'.format(cfg.Base, cfg.Quote, cfg.Retry_times))
@@ -471,15 +500,17 @@ if __name__ == '__main__':
                 # Query last price fail
                 log.log('Query {}, {} Balance fail {} times!!'.format(cfg.Base, cfg.Quote, cfg.Retry_times))
                 System_Msg('Fail query {} last price, skip today'.format(cfg.Base + cfg.Quote))
-                del Balance
+                del Last_price
                 continue
             else:
                 log.log('Query {} last price successfully, retry {} times!!'.format(cfg.Base + cfg.Quote, cfg.Retry_times - retry))
 
 
             ### Show status
+            sta.base_balance = float(Balance[cfg.Base]['free']) + float(Balance[cfg.Base]['locked'])
+            sta.quote_balance = float(Balance[cfg.Quote]['free']) + float(Balance[cfg.Quote]['locked'])
             display_str = '{} Fear and Greed index : {} >>> {}\n'.format(datetime.now().strftime('%Y/%m/%d'), Fng['value'], Fng['value_classification'])
-            display_str += 'Wallet Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, Balance[cfg.Base]['free'], cfg.Quote, Balance[cfg.Quote]['free'])
+            display_str += 'Free Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.base_balance, cfg.Quote, sta.quote_balance)
             display_str += '{} last price : {} {}'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
             log.log_and_show(display_str)
             del display_str
@@ -527,9 +558,10 @@ if __name__ == '__main__':
                                     retry = 'F'
                                     break
                                 case 'NEW' | 'PARTIALLY_FILLED':
-                                    delay.delay(5)
+                                    delay.delay(2)
                                     pass
                                 case _:
+                                    delay.delay(2)
                                     pass
                             retry -= 1
                             delay.delay(cfg.Retry_delay)
@@ -547,22 +579,54 @@ if __name__ == '__main__':
                     order.actual_quote_qty = float(order.status['cummulativeQuoteQty'])
                     order.actual_base_qty = float(order.status['executedQty'])
                     order.actual_price = order.actual_quote_qty / order.actual_base_qty
-                    order.time = order.status['time']
+                    order.time = float(order.status['time']) / 1000
 
-                    sta.accumulation_Buy_quote = 0
+                    if sta.accumulation_Buy_quote > order.actual_quote_qty:
+                        sta.accumulation_Buy_quote -= order.actual_quote_qty
+                    else:
+                        sta.accumulation_Buy_quote = 0
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
-            
+
             else:
                 sta.accumulation_Buy_quote += cfg.Daily_invest
 
-            ##Sell at greed function not ready
+            ### Record csv and sta
+            try:
+                row = [
+                    '[{}]'.format(timestamp_format(sta.exe_time)),     # exe_time
+                    Balance[cfg.Base]['free'],          # base_balance
+                    Balance[cfg.Quote]['free'],         # quote_balance
+                    '[{}]'.format(timestamp_format(order.time)),       # trade_time
+                    order.actual_base_qty,              # trade_{}
+                    order.actual_quote_qty,             # trade_{}
+                    Fng['value'],                       # F&G
+                    '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
+                    sta.accumulation_Buy_quote,         # accum_Buy
+                    sta.accumulation_Sell_quote         # accum_Sell
+                ]
+                ledger.write(row)
+                del row
+                del order
+            except NameError:
+                row = [
+                    '[{}]'.format(timestamp_format(sta.exe_time)),     # exe_time
+                    Balance[cfg.Base]['free'],          # base_balance
+                    Balance[cfg.Quote]['free'],         # quote_balance
+                    '--',                               # trade_time
+                    '--',                               # trade_{}
+                    '--',                               # trade_{}
+                    Fng['value'],                       # F&G
+                    '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
+                    sta.accumulation_Buy_quote,         # accum_Buy
+                    sta.accumulation_Sell_quote         # accum_Sell
+                ]
+                ledger.write(row)
+                del row
 
-            ### Record csv ans sta
-            # TODO
-            # TODO
-            # TODO
-
+            del Balance
+            del Last_price
+            sta.write()
            
         except Exception as Err:
             Err = str(Err)
