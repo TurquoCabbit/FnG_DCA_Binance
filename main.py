@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.00'
+Version = '0.1.01'
 Date = '2022/01/17'
 
 ##############################################################################################################################
@@ -36,7 +36,7 @@ class CFG:
                             'Base' : 'BTC',
                             'Quote' : 'USDT',
                             'Duration_days' : 365,
-                            'Daily_invest' : 0,
+                            'Daily_invest' : 10,
                             'Accumulate_Buy' : True,
                             'Accumulate_Sell' : False,
                             'Buy_at_fear' : 25,
@@ -134,11 +134,6 @@ class Status_data:
         if not os.path.isdir(dir):
             os.mkdir(dir)
         
-        if not os.path.isfile('{}/status.json'.format(dir)):
-            with open('{}/status.json'.format(dir), 'w') as file:
-                pass
-            del file
-
         self.dir = dir
         
         self.__var_init__()

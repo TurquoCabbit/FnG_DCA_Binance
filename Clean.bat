@@ -3,6 +3,6 @@ rmdir /s /q build
 rmdir /s /q dist
 rmdir /s /q archive
 rmdir /s /q log
-rmdir /s /q pnl
+rmdir /s /q status
 
 del *.spec
