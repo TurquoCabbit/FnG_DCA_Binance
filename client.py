@@ -188,7 +188,7 @@ class Client_Spot:
                     self.log.log('untrack_error_code')
                     return False
 
-    def place_market_order(self, symbol, side, qty):
+    def place_market_order_quote(self, symbol, side, quote_qty):
         try:
             side = side.upper()
             if side == 'BUY' or side == 'SELL':
@@ -196,7 +196,29 @@ class Client_Spot:
                                                 symbol = symbol,
                                                 side = side,
                                                 type = 'MARKET',
-                                                quoteOrderQty = qty,
+                                                quoteOrderQty = quote_qty,
+                                            )['clientOrderId']
+            else:
+                return False
+
+        except Exception as err:
+            ret_code = self.error_message(err, 'Place market order Fail!!')
+            match ret_code:
+                case '-1121':
+                    return False
+                case _:
+                    self.log.log('untrack_error_code')
+                    return False
+
+    def place_market_order_base(self, symbol, side, base_qty):
+        try:
+            side = side.upper()
+            if side == 'BUY' or side == 'SELL':
+                return self.client.new_order(
+                                                symbol = symbol,
+                                                side = side,
+                                                type = 'MARKET',
+                                                quantity = base_qty,
                                             )['clientOrderId']
             else:
                 return False

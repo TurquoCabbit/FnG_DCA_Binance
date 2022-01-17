@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.01'
+Version = '0.1.10'
 Date = '2022/01/17'
 
 ##############################################################################################################################
@@ -193,7 +193,7 @@ class Status_data:
         del temp
     
     def archive(self):
-        if os.path.isdir(self.dir):
+        if os.path.isdir(self.dir) and os.path.isfile('{}/status.json'.format(self.dir)):
             if not os.path.isdir('archive'):
                 os.mkdir('archive')
             copytree(self.dir, 'archive/{}_{}'.format(self.dir, timestamp_format(os.path.getctime('{}/status.json'.format(self.dir)), '%Y%m%d-%H%M%S')))
@@ -522,7 +522,7 @@ if __name__ == '__main__':
                     ## Place matket order
                     retry = cfg.Retry_times
                     while retry:
-                        order.orderId = client.place_market_order(order.symbol, order.side, order.quote_qty)
+                        order.orderId = client.place_market_order_quote(order.symbol, order.side, order.quote_qty)
                         if order.orderId == False:
                             retry -= 1
                             delay.delay(cfg.Retry_delay)
