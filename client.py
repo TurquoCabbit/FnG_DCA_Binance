@@ -20,7 +20,7 @@ class Client_Spot:
         else:
             self.test_net = False
         
-        self.log = Log('log')
+        self.log = Log('log', '%Y-%m')
         self.log.log('Client init : \n\tTest net : {}\n\tBase_url : {}\n\tTimeout : {} s'.format(self.test_net, url, timeout))
     
     def Error_Msg(self, str = ''):

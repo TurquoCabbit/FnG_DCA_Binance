@@ -3,11 +3,12 @@ from time import time
 import os
 
 class Log:
-    def __init__(self, dir = '') -> None:
+    def __init__(self, dir = '', file_name = '%Y-%m-%d') -> None:
         self.dir = dir
         if self.dir != '':
             if not os.path.isdir(self.dir):
                 os.mkdir(self.dir)
+        self.file_name_timestr = file_name
 
     def show(self, str = ''):
         str = str.split('\n')
@@ -19,7 +20,7 @@ class Log:
     def log(self, str = ''):
         str = str.split('\n')
 
-        with open('{}/{}.log'.format(self.dir, datetime.now().strftime('%Y-%m-%d')), 'a') as file:
+        with open('{}/{}.log'.format(self.dir, datetime.now().strftime(self.file_name_timestr)), 'a') as file:
             for i in str:
                 file.writelines('{} : {}\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), i))
 
@@ -27,7 +28,7 @@ class Log:
     def log_and_show(self, str = ''):
         str = str.split('\n')
         
-        with open('{}/{}.log'.format(self.dir, datetime.now().strftime('%Y-%m-%d')), 'a') as file:
+        with open('{}/{}.log'.format(self.dir, datetime.now().strftime(self.file_name_timestr)), 'a') as file:
             for i in str:
                 print('{} : {}'.format(datetime.now().strftime('%H:%M:%S'), i))
                 file.writelines('{} : {}\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), i))

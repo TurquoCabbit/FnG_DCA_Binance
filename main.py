@@ -17,12 +17,12 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.11'
+Version = '0.1.12'
 Date = '2022/01/17'
 
 ##############################################################################################################################
 ### init log
-log = Log('log')
+log = Log('log', '%Y-%m')
 log.log('\n=============================START==============================')
 log.log_and_show('Bybit Fear and Greed index DCA trading bot ver {} {}'.format(Version, Date))
 
