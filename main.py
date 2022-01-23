@@ -17,8 +17,8 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.12'
-Date = '2022/01/17'
+Version = '0.1.13'
+Date = '2022/01/23'
 
 ##############################################################################################################################
 ### init log
@@ -147,6 +147,10 @@ class Status_data:
         self.quote_balance = 0
         self.accumulation_Buy_quote = 0
         self.accumulation_Sell_quote = 0
+
+        self.operated_base = 0
+        self.operated_quote = 0
+        self.avg_price = 0
     
     def __str__(self):
         str = 'start_time : {}\n'.format(self.start_time)
@@ -156,6 +160,9 @@ class Status_data:
         str += 'quote_balance : {}\n'.format(self.quote_balance)
         str += 'accumulation_Buy_quote : {}\n'.format(self.accumulation_Buy_quote)
         str += 'accumulation_Sell_quote : {}\n'.format(self.accumulation_Sell_quote)
+        str += 'operated_base : {}\n'.format(self.operated_base)
+        str += 'operated_quote : {}\n'.format(self.operated_quote)
+        str += 'avg_price : {}\n'.format(self.avg_price)
         return str
 
     def load(self):
@@ -172,6 +179,9 @@ class Status_data:
             self.quote_balance = temp['quote_balance']
             self.accumulation_Buy_quote = temp['accumulation_Buy_quote']
             self.accumulation_Sell_quote = temp['accumulation_Sell_quote']
+            self.operated_base = temp['operated_base']
+            self.operated_quote = temp['operated_quote']
+            self.avg_price = temp['avg_price']
         except KeyError:
             self.__var_init__()
 
@@ -185,7 +195,10 @@ class Status_data:
             'base_balance' :  self.base_balance,
             'quote_balance' :  self.quote_balance,
             'accumulation_Buy_quote' :  self.accumulation_Buy_quote,
-            'accumulation_Sell_quote' :  self.accumulation_Sell_quote
+            'accumulation_Sell_quote' :  self.accumulation_Sell_quote,
+            'operated_base' :  self.operated_base,
+            'operated_quote' :  self.operated_quote,
+            'avg_price' :  self.avg_price
         }        
         with open('{}/status.json'.format(self.dir), 'w') as file:
             json.dump(temp, file, indent = 4)
@@ -204,7 +217,6 @@ class Ledger:
     def __init__(self, dir, filename) -> None:
         self.file = '{}/{}.csv'.format(dir, filename)
         self.csv_head = False
-
         
     def set_header(self, arr = []):
         self.csv_head = arr
@@ -214,7 +226,6 @@ class Ledger:
                 writer = csv.writer(file)
                 writer.writerow(self.csv_head)
 
-        
     def write(self, row = []):
         with open(self.file, 'a', newline='') as file:
             writer = csv.writer(file)
@@ -362,6 +373,9 @@ if __name__ == '__main__':
             'trade_{}'.format(cfg.Base),
             'trade_{}'.format(cfg.Quote),
             'trade_price',
+            'average_price',
+            'operated_{}'.format(cfg.Base),
+            'operated_{}'.format(cfg.Quote),
             'F&G',
             'next_time',
             'accum_Buy',
@@ -571,6 +585,10 @@ if __name__ == '__main__':
                     order.actual_price = order.actual_quote_qty / order.actual_base_qty
                     order.time = float(order.status['time']) / 1000
                     
+                    sta.avg_price = ((sta.operated_base * sta.avg_price) + order.actual_quote_qty) / (sta.operated_base + order.actual_base_qty)
+                    sta.operated_base += order.actual_base_qty
+                    sta.operated_quote += order.actual_quote_qty
+
                     sta.accumulation_Buy_quote += cfg.Daily_invest - order.actual_quote_qty
                     if sta.accumulation_Buy_quote < 0:
                         sta.accumulation_Buy_quote = 0
@@ -594,38 +612,45 @@ if __name__ == '__main__':
             ### Record csv and sta
             try:
                 row = [
-                    '[{}]'.format(timestamp_format(sta.exe_time)),     # exe_time
-                    Balance[cfg.Base]['free'],          # base_balance
-                    Balance[cfg.Quote]['free'],         # quote_balance
-                    '[{}]'.format(timestamp_format(order.time)),       # trade_time
-                    order.actual_base_qty,              # trade_{}
-                    order.actual_quote_qty,             # trade_{}
-                    order.actual_price,                 # trade_price
-                    Fng['value'],                       # F&G
-                    '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
-                    sta.accumulation_Buy_quote,         # accum_Buy
-                    sta.accumulation_Sell_quote         # accum_Sell
+                    '[{}]'.format(timestamp_format(sta.exe_time)),      # exe_time
+                    Balance[cfg.Base]['free'],                          # base_balance
+                    Balance[cfg.Quote]['free'],                         # quote_balance
+                    '[{}]'.format(timestamp_format(order.time)),        # trade_time
+                    order.actual_base_qty,                              # trade_{}
+                    order.actual_quote_qty,                             # trade_{}
+                    order.actual_price,                                 # trade_price
+                    sta.avg_price,                                      # average_price
+                    sta.operated_base,                                  # operated_{}
+                    sta.operated_quote,                                 # operated_{}
+                    Fng['value'],                                       # F&G
+                    '[{}]'.format(timestamp_format(sta.next_time)),     # next_time
+                    sta.accumulation_Buy_quote,                         # accum_Buy
+                    sta.accumulation_Sell_quote                         # accum_Sell
                 ]
                 ledger.write(row)
                 del row
                 del order
             except NameError:
                 row = [
-                    '[{}]'.format(timestamp_format(sta.exe_time)),     # exe_time
-                    Balance[cfg.Base]['free'],          # base_balance
-                    Balance[cfg.Quote]['free'],         # quote_balance
-                    '--',                               # trade_time
-                    '--',                               # trade_{}
-                    '--',                               # trade_{}
-                    '--',                               # trade_price
-                    Fng['value'],                       # F&G
-                    '[{}]'.format(timestamp_format(sta.next_time)),    # next_time
-                    sta.accumulation_Buy_quote,         # accum_Buy
-                    sta.accumulation_Sell_quote         # accum_Sell
+                    '[{}]'.format(timestamp_format(sta.exe_time)),      # exe_time
+                    Balance[cfg.Base]['free'],                          # base_balance
+                    Balance[cfg.Quote]['free'],                         # quote_balance
+                    '--',                                               # trade_time
+                    '--',                                               # trade_{}
+                    '--',                                               # trade_{}
+                    '--',                                               # trade_price
+                    sta.avg_price,                                      # average_price
+                    sta.operated_base,                                  # operated_{}
+                    sta.operated_quote,                                 # operated_{}
+                    Fng['value'],                                       # F&G
+                    '[{}]'.format(timestamp_format(sta.next_time)),     # next_time
+                    sta.accumulation_Buy_quote,                         # accum_Buy
+                    sta.accumulation_Sell_quote                         # accum_Sell
                 ]
                 ledger.write(row)
                 del row
-
+            
+            del Fng
             del Balance
             del Last_price
             sta.write()
