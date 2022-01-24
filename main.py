@@ -9,6 +9,7 @@ import csv
 from gc import collect
 from shutil import rmtree
 from shutil import copytree
+from tkinter.ttk import Separator
 
 from Make_log import Log
 from Loading_animation import delay_anima
@@ -17,8 +18,8 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.13'
-Date = '2022/01/23'
+Version = '0.1.14'
+Date = '2022/01/24'
 
 ##############################################################################################################################
 ### init log
@@ -274,20 +275,9 @@ def Print_and_pause(str = ''):
     print(str)
     os.system('pause')
 
-def qty_trim(qty, step):
-    digi = abs((int)(format(step, '1E').split('E')[1]))
-    qty = (int)(qty * pow(10, digi))
-    step = (int)(step * pow(10, digi))
-    qty -= qty % step    
-    return qty / pow(10, digi)
-
-def price_trim(price, tick):
-    digi = abs((int)(format(tick, '1E').split('E')[1]))
-    price = (int)(price * pow(10, digi))
-    tick = (int)(tick * pow(10, digi))
-    
-    price -= price % tick    
-    return price / pow(10, digi)
+def precision_trim(num, digi):
+    num = (int)(num * pow(10, digi))
+    return num / pow(10, digi)
 
 def timestamp_format(stamp, format = '%Y/%m/%d %H:%M:%S'):
     return strftime(format, localtime(stamp))
@@ -514,10 +504,12 @@ if __name__ == '__main__':
             sta.base_balance = float(Balance[cfg.Base]['free']) + float(Balance[cfg.Base]['locked'])
             sta.quote_balance = float(Balance[cfg.Quote]['free']) + float(Balance[cfg.Quote]['locked'])
             display_str = '{} Fear and Greed index : {} >>> {}\n'.format(datetime.now().strftime('%Y/%m/%d'), Fng['value'], Fng['value_classification'])
-            display_str += 'Free Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.base_balance, cfg.Quote, sta.quote_balance)
-            display_str += '{} last price : {} {}'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
+            separator = '=' * (len(display_str) - 1)
+            display_str += '{} last price : {} {}\n'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
+            display_str += 'Free Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}'.format(cfg.Base, sta.base_balance, cfg.Quote, sta.quote_balance)
             log.log_and_show(display_str)
-            log.show('')
+            log.show(separator)
+            del separator
             del display_str
 
             ### Check and Do trade
@@ -526,8 +518,8 @@ if __name__ == '__main__':
                 if Balance[cfg.Quote]['free'] >= sta.accumulation_Buy_quote + cfg.Daily_invest:
                     # Free balance larger than daily invest value
                     order = Open(cfg.Base + cfg.Quote, 'Buy')
-                    # order.quote_qty = qty_trim(sta.accumulation_Buy_quote + cfg.Daily_invest, Symbol['quotePrecision'])
-                    order.quote_qty = sta.accumulation_Buy_quote + cfg.Daily_invest
+                    sta.accumulation_Buy_quote += cfg.Daily_invest
+                    order.quote_qty = precision_trim(sta.accumulation_Buy_quote, Symbol['quoteCommissionPrecision'])
 
                     ## Place matket order
                     retry = cfg.Retry_times
@@ -542,8 +534,8 @@ if __name__ == '__main__':
 
                     if retry == 0:
                         # Open order fail
-                        log.log('Open {} {} order fail {} times!!'.format(order.symbol, order.side, cfg.Quote, cfg.Retry_times))
-                        System_Msg('Fail open {} {}, skip today'.format(order.symbol, order.side))
+                        log.log('Open {} {} {} order fail {} times!!'.format(order.quote_qty, order.symbol, order.side, cfg.Retry_times))
+                        System_Msg('Fail open order, skip today')
                         del order
                         continue
                     else:
@@ -573,23 +565,32 @@ if __name__ == '__main__':
                             continue
                         else:
                             break
-                    if retry == 0 or retry == 'F':
+                    if retry == 0:
                         # retry fail
-                        Error_Msg('{} {} order created Fail!!, query: {} times, order_status: {}'.format(order.symbol, order.side, cfg.Retry_times - retry, order.status))
+                        System_Msg('Query {} {} order status Fail!!, query: {} times, order_status: {}'.format(order.symbol, order.side, cfg.Retry_times - retry, order.status))
+                    elif retry == 'F':
+                        # order execute fail
+                        System_Msg('{} {} order execute Fail!!, query: {} times, order_status: {}'.format(order.symbol, order.side, cfg.Retry_times - retry, order.status))
                         del order
-                        continue                                 
+                        continue
                     del retry
 
-                    order.actual_quote_qty = float(order.status['cummulativeQuoteQty'])
-                    order.actual_base_qty = float(order.status['executedQty'])
-                    order.actual_price = order.actual_quote_qty / order.actual_base_qty
-                    order.time = float(order.status['time']) / 1000
+                    try:
+                        order.actual_quote_qty = float(order.status['cummulativeQuoteQty'])
+                        order.actual_base_qty = float(order.status['executedQty'])
+                        order.actual_price = order.actual_quote_qty / order.actual_base_qty
+                        order.time = float(order.status['time']) / 1000
+                    except NameError:
+                        order.actual_quote_qty = order.quote_qty
+                        order.actual_base_qty = order.quote_qty / Last_price
+                        order.actual_price = Last_price
+                        order.time = float(time())
                     
                     sta.avg_price = ((sta.operated_base * sta.avg_price) + order.actual_quote_qty) / (sta.operated_base + order.actual_base_qty)
                     sta.operated_base += order.actual_base_qty
                     sta.operated_quote += order.actual_quote_qty
 
-                    sta.accumulation_Buy_quote += cfg.Daily_invest - order.actual_quote_qty
+                    sta.accumulation_Buy_quote -= order.actual_quote_qty
                     if sta.accumulation_Buy_quote < 0:
                         sta.accumulation_Buy_quote = 0
                     
@@ -605,6 +606,7 @@ if __name__ == '__main__':
                     del str
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
+                    sta.accumulation_Buy_quote += cfg.Daily_invest
 
             else:
                 sta.accumulation_Buy_quote += cfg.Daily_invest
