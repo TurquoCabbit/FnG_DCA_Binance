@@ -9,7 +9,6 @@ import csv
 from gc import collect
 from shutil import rmtree
 from shutil import copytree
-from tkinter.ttk import Separator
 
 from Make_log import Log
 from Loading_animation import delay_anima
@@ -18,14 +17,17 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.14'
-Date = '2022/01/24'
+Version = '0.1.15'
+Date = '2022/02/01'
 
 ##############################################################################################################################
 ### init log
 log = Log('log', '%Y-%m')
 log.log('\n=============================START==============================')
-log.log_and_show('Bybit Fear and Greed index DCA trading bot ver {} {}'.format(Version, Date))
+str = 'Bybit Fear and Greed index DCA trading bot ver {} {}'.format(Version, Date)
+log.log_and_show(str)
+log.show('=' * len(str))
+del str
 
 class CFG:
     def __init__(self, version) -> None:
