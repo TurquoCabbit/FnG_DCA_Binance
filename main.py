@@ -17,16 +17,17 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.15'
-Date = '2022/02/01'
+Version = '0.1.16'
+Date = '2022/02/02'
 
 ##############################################################################################################################
 ### init log
 log = Log('log', '%Y-%m')
-log.log('\n=============================START==============================')
 str = 'Bybit Fear and Greed index DCA trading bot ver {} {}'.format(Version, Date)
+separator = '=' * ((len(str) - 4) // 2) + 'START' + '=' * ((len(str) - 4) // 2)
+log.log(separator)
 log.log_and_show(str)
-log.show('=' * len(str))
+del separator
 del str
 
 class CFG:
@@ -151,6 +152,11 @@ class Status_data:
         self.accumulation_Buy_quote = 0
         self.accumulation_Sell_quote = 0
 
+        self.bought_base = 0
+        self.bought_quote = 0
+        self.sold_base = 0
+        self.sold_quote = 0
+
         self.operated_base = 0
         self.operated_quote = 0
         self.avg_price = 0
@@ -163,6 +169,10 @@ class Status_data:
         str += 'quote_balance : {}\n'.format(self.quote_balance)
         str += 'accumulation_Buy_quote : {}\n'.format(self.accumulation_Buy_quote)
         str += 'accumulation_Sell_quote : {}\n'.format(self.accumulation_Sell_quote)
+        str += 'bought_base : {}\n'.format(self.bought_base)
+        str += 'bought_quote : {}\n'.format(self.bought_quote)
+        str += 'sold_base : {}\n'.format(self.sold_base)
+        str += 'sold_quote : {}\n'.format(self.sold_quote)
         str += 'operated_base : {}\n'.format(self.operated_base)
         str += 'operated_quote : {}\n'.format(self.operated_quote)
         str += 'avg_price : {}\n'.format(self.avg_price)
@@ -182,6 +192,10 @@ class Status_data:
             self.quote_balance = temp['quote_balance']
             self.accumulation_Buy_quote = temp['accumulation_Buy_quote']
             self.accumulation_Sell_quote = temp['accumulation_Sell_quote']
+            self.bought_base = temp['bought_base']
+            self.bought_quote = temp['bought_quote']
+            self.sold_base = temp['sold_base']
+            self.sold_quote = temp['sold_quote']
             self.operated_base = temp['operated_base']
             self.operated_quote = temp['operated_quote']
             self.avg_price = temp['avg_price']
@@ -199,6 +213,10 @@ class Status_data:
             'quote_balance' :  self.quote_balance,
             'accumulation_Buy_quote' :  self.accumulation_Buy_quote,
             'accumulation_Sell_quote' :  self.accumulation_Sell_quote,
+            'bought_base' :  self.bought_base,
+            'bought_quote' :  self.bought_quote,
+            'sold_base' :  self.sold_base,
+            'sold_quote' :  self.sold_quote,
             'operated_base' :  self.operated_base,
             'operated_quote' :  self.operated_quote,
             'avg_price' :  self.avg_price
@@ -354,6 +372,8 @@ if __name__ == '__main__':
         ##############################################################################################################################
         ### Load status data
         sta.load()
+        sta.operated_base = sta.bought_base - sta.sold_base
+        sta.operated_quote = (cfg.Duration_days * cfg.Daily_invest) - sta.bought_quote
 
         ##############################################################################################################################
         ### Set csv head
@@ -366,12 +386,16 @@ if __name__ == '__main__':
             'trade_{}'.format(cfg.Quote),
             'trade_price',
             'average_price',
-            'operated_{}'.format(cfg.Base),
-            'operated_{}'.format(cfg.Quote),
+            'bought_{}'.format(cfg.Base),
+            'bought_{}'.format(cfg.Quote),
+            'sold_{}'.format(cfg.Base),
+            'sold_{}'.format(cfg.Quote),
             'F&G',
             'next_time',
             'accum_Buy',
-            'accum_Sell'
+            'accum_Sell',
+            'free_{}_balance'.format(cfg.Base),
+            'free_{}_balance'.format(cfg.Quote),
         ]
         ledger.set_header(header)
         del header
@@ -400,7 +424,11 @@ if __name__ == '__main__':
             ### check time and run
             sta.exe_time = int(time())
             if sta.exe_time >= sta.next_time:
-                log.log_and_show(log.get_run_time(sta.start_time))
+                rt = log.get_run_time(sta.start_time)
+                separator = '=' * (2 * len(rt))
+                log.log_and_show(separator + '\n' + rt)
+                del rt
+                del separator
                 if sta.exe_time - sta.next_time > 86400:
                     #First round or pause longer than one days
                     sta.next_time = 86400 + sta.exe_time
@@ -411,6 +439,7 @@ if __name__ == '__main__':
                 collect()
                 delay.anima_runtime(cfg.Polling_delay, sta.start_time)
                 continue
+
             ### Query symbol data
             retry = cfg.Retry_times
             while retry:
@@ -505,19 +534,15 @@ if __name__ == '__main__':
             ### Show status
             sta.base_balance = float(Balance[cfg.Base]['free']) + float(Balance[cfg.Base]['locked'])
             sta.quote_balance = float(Balance[cfg.Quote]['free']) + float(Balance[cfg.Quote]['locked'])
-            display_str = '{} Fear and Greed index : {} >>> {}\n'.format(datetime.now().strftime('%Y/%m/%d'), Fng['value'], Fng['value_classification'])
-            separator = '=' * (len(display_str) - 1)
-            display_str += '{} last price : {} {}\n'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
-            display_str += 'Free Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}'.format(cfg.Base, sta.base_balance, cfg.Quote, sta.quote_balance)
-            log.log_and_show(display_str)
-            log.show(separator)
-            del separator
-            del display_str
+            str = '{} Fear and Greed index : {} >>> {}\n'.format(datetime.now().strftime('%Y/%m/%d'), Fng['value'], Fng['value_classification'])
+            str += '{} last price : {} {}'.format(cfg.Base + cfg.Quote, Last_price, cfg.Quote)
+            log.log_and_show(str)
+            del str
 
             ### Check and Do trade
             if Fng['value'] <= cfg.Buy_at_fear:
                 # Buy
-                if Balance[cfg.Quote]['free'] >= sta.accumulation_Buy_quote + cfg.Daily_invest:
+                if Balance[cfg.Quote]['free'] >= sta.accumulation_Buy_quote + cfg.Daily_invest and sta.operated_quote > 0:
                     # Free balance larger than daily invest value
                     order = Open(cfg.Base + cfg.Quote, 'Buy')
                     sta.accumulation_Buy_quote += cfg.Daily_invest
@@ -588,12 +613,16 @@ if __name__ == '__main__':
                         order.actual_price = Last_price
                         order.time = float(time())
                     
+                    #average
                     sta.avg_price = ((sta.operated_base * sta.avg_price) + order.actual_quote_qty) / (sta.operated_base + order.actual_base_qty)
-                    sta.operated_base += order.actual_base_qty
-                    sta.operated_quote += order.actual_quote_qty
+                    sta.bought_base += order.actual_base_qty
+                    sta.bought_quote += order.actual_quote_qty
 
-                    sta.accumulation_Buy_quote -= order.actual_quote_qty
-                    if sta.accumulation_Buy_quote < 0:
+                    if cfg.Accumulate_Buy:
+                        sta.accumulation_Buy_quote -= order.actual_quote_qty
+                        if sta.accumulation_Buy_quote < 0:
+                            sta.accumulation_Buy_quote = 0
+                    else:
                         sta.accumulation_Buy_quote = 0
                     
                     str = '{} Buy {:.5f} {} at {:.2f} {} ({:.2f} {}) Successfully!!'.format(datetime.now().strftime('%Y/%m/%d'),
@@ -604,32 +633,60 @@ if __name__ == '__main__':
                                                                                         order.actual_quote_qty,
                                                                                         cfg.Quote)
                     log.log_and_show(str)
-                    log.show('=' * len(str))
                     del str
+                elif sta.operated_quote <= 0:
+                    log.log_and_show('Fear and greed {} DCA for {} days COMPLETE!!'.format(cfg.Quote + cfg.Base, cfg.Duration_days))
+                    os.system('pause')
+                    os.exit(0)
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
-                    sta.accumulation_Buy_quote += cfg.Daily_invest
+                    if cfg.Accumulate_Buy:
+                        sta.accumulation_Buy_quote += cfg.Daily_invest
 
             else:
-                sta.accumulation_Buy_quote += cfg.Daily_invest
+                if cfg.Accumulate_Buy:
+                    sta.accumulation_Buy_quote += cfg.Daily_invest
+
+            ### Summary
+            sta.operated_base = sta.bought_base - sta.sold_base
+            sta.operated_quote = (cfg.Duration_days * cfg.Daily_invest) - sta.bought_quote
+
+            separator = '---------------------------------------------\n'
+            str = separator
+            str += 'BUY : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.bought_base, cfg.Quote, sta.bought_quote)
+            str += separator
+            str += 'SELL : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.sold_base, cfg.Quote, sta.sold_quote)
+            str += separator
+            str += 'Balance : \n\t{}\t:\t{:.5f}\n\t{}\t:\t{:.2f}\n'.format(cfg.Base, sta.operated_base, cfg.Quote, sta.operated_quote)
+            str += separator
+            str += 'Average price : {:.2f} {}\n'.format(sta.avg_price, cfg.Quote)
+            str += separator.split('\n')[0]
+
+            log.log_and_show(str)
+            del str
+            del separator
 
             ### Record csv and sta
             try:
                 row = [
                     '[{}]'.format(timestamp_format(sta.exe_time)),      # exe_time
-                    Balance[cfg.Base]['free'],                          # base_balance
-                    Balance[cfg.Quote]['free'],                         # quote_balance
+                    sta.operated_base,                                  # base_balance
+                    sta.operated_quote,                                 # quote_balance
                     '[{}]'.format(timestamp_format(order.time)),        # trade_time
                     order.actual_base_qty,                              # trade_{}
                     order.actual_quote_qty,                             # trade_{}
                     order.actual_price,                                 # trade_price
                     sta.avg_price,                                      # average_price
-                    sta.operated_base,                                  # operated_{}
-                    sta.operated_quote,                                 # operated_{}
+                    sta.bought_base,                                    # bought_{}
+                    sta.bought_quote,                                   # bought_{}
+                    sta.sold_base,                                      # sold_{}
+                    sta.sold_quote,                                     # sold_{}
                     Fng['value'],                                       # F&G
                     '[{}]'.format(timestamp_format(sta.next_time)),     # next_time
                     sta.accumulation_Buy_quote,                         # accum_Buy
-                    sta.accumulation_Sell_quote                         # accum_Sell
+                    sta.accumulation_Sell_quote,                        # accum_Sell
+                    Balance[cfg.Base]['free'],                          # free_{}_balance
+                    Balance[cfg.Quote]['free'],                         # free_{}_balance
                 ]
                 ledger.write(row)
                 del row
@@ -637,19 +694,23 @@ if __name__ == '__main__':
             except NameError:
                 row = [
                     '[{}]'.format(timestamp_format(sta.exe_time)),      # exe_time
-                    Balance[cfg.Base]['free'],                          # base_balance
-                    Balance[cfg.Quote]['free'],                         # quote_balance
+                    sta.operated_base,                                  # base_balance
+                    sta.operated_quote,                                 # quote_balance
                     '--',                                               # trade_time
                     '--',                                               # trade_{}
                     '--',                                               # trade_{}
                     '--',                                               # trade_price
                     sta.avg_price,                                      # average_price
-                    sta.operated_base,                                  # operated_{}
-                    sta.operated_quote,                                 # operated_{}
+                    sta.bought_base,                                    # bought_{}
+                    sta.bought_quote,                                   # bought_{}
+                    sta.sold_base,                                      # sold_{}
+                    sta.sold_quote,                                     # sold_{}
                     Fng['value'],                                       # F&G
                     '[{}]'.format(timestamp_format(sta.next_time)),     # next_time
                     sta.accumulation_Buy_quote,                         # accum_Buy
-                    sta.accumulation_Sell_quote                         # accum_Sell
+                    sta.accumulation_Sell_quote,                        # accum_Sell
+                    Balance[cfg.Base]['free'],                          # free_{}_balance
+                    Balance[cfg.Quote]['free'],                         # free_{}_balance
                 ]
                 ledger.write(row)
                 del row
@@ -658,6 +719,11 @@ if __name__ == '__main__':
             del Balance
             del Last_price
             sta.write()
+            log.log('Next time buy if fear\t: {:.2f}\t{}\nNext time sell if greed\t: {:.2f}\t{}'.format(
+                                                                                sta.accumulation_Buy_quote,
+                                                                                cfg.Quote,
+                                                                                sta.accumulation_Sell_quote,
+                                                                                cfg.Quote))
            
         except Exception as Err:
             Err = str(Err)
