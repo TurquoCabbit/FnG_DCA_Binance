@@ -17,8 +17,8 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.16'
-Date = '2022/02/02'
+Version = '0.1.17'
+Date = '2022/02/05'
 
 ##############################################################################################################################
 ### init log
@@ -637,7 +637,7 @@ if __name__ == '__main__':
                 elif sta.operated_quote <= 0:
                     log.log_and_show('Fear and greed {} DCA for {} days COMPLETE!!'.format(cfg.Quote + cfg.Base, cfg.Duration_days))
                     os.system('pause')
-                    os.exit(0)
+                    os._exit(0)
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
                     if cfg.Accumulate_Buy:
