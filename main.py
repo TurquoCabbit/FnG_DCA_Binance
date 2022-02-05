@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.17'
+Version = '0.1.18'
 Date = '2022/02/05'
 
 ##############################################################################################################################
@@ -720,9 +720,9 @@ if __name__ == '__main__':
             del Last_price
             sta.write()
             log.log('Next time buy if fear\t: {:.2f}\t{}\nNext time sell if greed\t: {:.2f}\t{}'.format(
-                                                                                sta.accumulation_Buy_quote,
+                                                                                sta.accumulation_Buy_quote + cfg.Daily_invest,
                                                                                 cfg.Quote,
-                                                                                sta.accumulation_Sell_quote,
+                                                                                sta.accumulation_Sell_quote + cfg.Daily_invest,
                                                                                 cfg.Quote))
            
         except Exception as Err:
