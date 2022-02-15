@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.19'
+Version = '0.1.20'
 Date = '2022/02/15'
 
 ##############################################################################################################################
@@ -418,17 +418,19 @@ if __name__ == '__main__':
         log.log('Exception type: {}, in: <{}>, line: {}'.format(exc_type, fname, exc_tb.tb_lineno))
         os.system('pause')
         os._exit(0)
+
+    program = '{}/{} FnG DCA pogram, {} {} * {} days'.format(cfg.Base, cfg.Quote, cfg.Daily_invest, cfg.Quote, cfg.Duration_days)
+    separator = '*' * (len(program) + 4)
+    log.log_and_show('\n' + separator + '\n* ' + program + ' *\n' + separator + '\n')
+    del program
+    del separator
     
     while True:
         try:
             ### check time and run
             sta.exe_time = int(time())
             if sta.exe_time >= sta.next_time:
-                rt = log.get_run_time(sta.start_time)
-                separator = '=' * (2 * len(rt))
-                log.log_and_show(separator + '\n' + rt)
-                del rt
-                del separator
+                log.log_and_show(log.get_run_time(sta.start_time))
                 if sta.exe_time - sta.next_time > 86400:
                     #First round or pause longer than one days
                     sta.next_time = 86400 + sta.exe_time
