@@ -17,8 +17,8 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.18'
-Date = '2022/02/05'
+Version = '0.1.19'
+Date = '2022/02/15'
 
 ##############################################################################################################################
 ### init log
@@ -634,15 +634,10 @@ if __name__ == '__main__':
                                                                                         cfg.Quote)
                     log.log_and_show(str)
                     del str
-                elif sta.operated_quote <= 0:
-                    log.log_and_show('Fear and greed {} DCA for {} days COMPLETE!!'.format(cfg.Quote + cfg.Base, cfg.Duration_days))
-                    os.system('pause')
-                    os._exit(0)
                 else:
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
                     if cfg.Accumulate_Buy:
                         sta.accumulation_Buy_quote += cfg.Daily_invest
-
             else:
                 if cfg.Accumulate_Buy:
                     sta.accumulation_Buy_quote += cfg.Daily_invest
@@ -719,7 +714,14 @@ if __name__ == '__main__':
             del Balance
             del Last_price
             sta.write()
-            log.log('Next time buy if fear\t: {:.2f}\t{}\nNext time sell if greed\t: {:.2f}\t{}'.format(
+
+            ### 
+            if sta.operated_quote <= (cfg.Daily_invest / 2):
+                log.log_and_show('Fear and greed {} DCA for {} days COMPLETE!!'.format(cfg.Quote + cfg.Base, cfg.Duration_days))
+                os.system('pause')
+                os._exit(0)
+            else:
+                log.log('Next time buy if fear\t: {:.2f}\t{}\nNext time sell if greed\t: {:.2f}\t{}'.format(
                                                                                 sta.accumulation_Buy_quote + cfg.Daily_invest,
                                                                                 cfg.Quote,
                                                                                 sta.accumulation_Sell_quote + cfg.Daily_invest,
