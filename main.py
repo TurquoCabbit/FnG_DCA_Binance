@@ -17,7 +17,7 @@ from fear_and_greed import crypto_fear_and_greed_alternative
 
 os.system('cls')
 ##########################################################
-Version = '0.1.20'
+Version = '0.1.21'
 Date = '2022/02/15'
 
 ##############################################################################################################################
@@ -640,9 +640,13 @@ if __name__ == '__main__':
                     log.log_and_show('Free {} balance lower than Daily invest volue!\nPause buy {} today!'.format(cfg.Quote, cfg.Base))
                     if cfg.Accumulate_Buy:
                         sta.accumulation_Buy_quote += cfg.Daily_invest
+                        if sta.accumulation_Buy_quote > sta.operated_quote:
+                            sta.accumulation_Buy_quote = sta.operated_quote
             else:
                 if cfg.Accumulate_Buy:
                     sta.accumulation_Buy_quote += cfg.Daily_invest
+                    if sta.accumulation_Buy_quote > sta.operated_quote:
+                        sta.accumulation_Buy_quote = sta.operated_quote
 
             ### Summary
             sta.operated_base = sta.bought_base - sta.sold_base
